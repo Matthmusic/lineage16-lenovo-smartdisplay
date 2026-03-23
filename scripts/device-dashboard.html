@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Display Status Dashboard</title>
+  <style>
+    :root {
+      --text: #f3eee4;
+      --muted: #95a3b6;
+      --good: #59d19a;
+      --warn: #ffbe69;
+      --bad: #ff7d73;
+      --info: #66c7f4;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-family: Consolas, "Cascadia Code", monospace;
+      background:
+        radial-gradient(circle at top left, rgba(102, 199, 244, 0.15), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(255, 190, 105, 0.12), transparent 22%),
+        linear-gradient(180deg, #0b0e12, #11161c);
+    }
+
+    .frame {
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      padding: clamp(10px, 1.2vh, 16px);
+    }
+
+    .wrap {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: minmax(108px, 0.18fr) minmax(0, 1fr);
+      gap: clamp(10px, 1.2vh, 16px);
+    }
+
+    .hero,
+    .grid {
+      display: grid;
+      gap: clamp(10px, 1.2vh, 16px);
+      min-height: 0;
+    }
+
+    .hero {
+      grid-template-columns: 1.3fr 0.7fr;
+    }
+
+    .grid {
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    }
+
+    .card {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+      background: linear-gradient(180deg, rgba(34, 42, 52, 0.96), rgba(27, 33, 40, 0.96));
+    }
+
+    .hero-card {
+      padding: clamp(12px, 1.5vh, 18px);
+    }
+
+    .header {
+      padding: clamp(10px, 1.1vh, 14px) clamp(12px, 1vw, 16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: clamp(11px, 1.05vh, 12px);
+    }
+
+    .body {
+      min-height: 0;
+      overflow: auto;
+      padding: clamp(10px, 1.1vh, 14px);
+    }
+
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+
+    h1 {
+      margin: 0 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: clamp(22px, 3vh, 34px);
+      line-height: 1.05;
+    }
+
+    .summary {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 2.6vh, 28px);
+      line-height: 1.08;
+      font-weight: 700;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: clamp(11px, 1.1vh, 13px);
+      line-height: 1.38;
+    }
+
+    .chips,
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chips {
+      margin-top: 10px;
+    }
+
+    .chip,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: clamp(10px, 1vh, 12px);
+      line-height: 1;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .good { background: var(--good); }
+    .warn { background: var(--warn); }
+    .bad { background: var(--bad); }
+    .info { background: var(--info); }
+
+    .stack {
+      display: grid;
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .overview-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .overview-block {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+    }
+
+    .section-title {
+      margin-bottom: 6px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: clamp(10px, 1vh, 11px);
+    }
+
+    .kv-grid {
+      display: grid;
+      gap: 6px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 6px 10px;
+      font-size: clamp(11px, 1.05vh, 12px);
+      line-height: 1.3;
+    }
+
+    .kv .key {
+      color: var(--muted);
+    }
+
+    #actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .action {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+    }
+
+    .action.danger {
+      border-color: rgba(255, 125, 115, 0.35);
+      background: rgba(255, 125, 115, 0.06);
+    }
+
+    .action-head,
+    .job-head,
+    .mode-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .action strong,
+    .job-head strong {
+      font-size: clamp(11px, 1.1vh, 13px);
+      line-height: 1.18;
+    }
+
+    .action p {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: clamp(11px, 1.05vh, 12px);
+      line-height: 1.36;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: clamp(11px, 1.05vh, 12px);
+      font-weight: 700;
+      cursor: pointer;
+      color: #05121a;
+      background: linear-gradient(180deg, #66c7f4, #2d96c6);
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: linear-gradient(180deg, #3a434f, #29313a);
+    }
+
+    button.warn {
+      color: #281700;
+      background: linear-gradient(180deg, #ffbe69, #d38a2d);
+    }
+
+    button.bad {
+      color: #fff1ef;
+      background: linear-gradient(180deg, #ca5d54, #8e3933);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .transport-layout {
+      display: grid;
+      grid-template-rows: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .transport-split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .transport-block {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: clamp(11px, 1.02vh, 12px);
+    }
+
+    th,
+    td {
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: clamp(10px, 0.98vh, 11px);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .empty,
+    .mono {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.18);
+      padding: 10px;
+      font-size: clamp(11px, 1.02vh, 12px);
+    }
+
+    .empty {
+      color: var(--muted);
+    }
+
+    .mono {
+      max-height: min(17vh, 150px);
+      overflow: auto;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #jobs {
+      gap: 8px;
+    }
+
+    #jobs .action {
+      padding: 9px;
+    }
+
+    code {
+      word-break: break-all;
+    }
+
+    @media (max-width: 1400px) {
+      #actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-aspect-ratio: 16/9) {
+      .frame {
+        width: 100vw;
+        height: calc(100vw * 9 / 16);
+      }
+    }
+
+    @media (max-width: 1080px), (max-aspect-ratio: 1.45/1) {
+      html, body {
+        overflow: auto;
+      }
+
+      body {
+        display: block;
+      }
+
+      .frame {
+        width: 100%;
+        height: auto;
+        aspect-ratio: auto;
+        padding: 12px;
+      }
+
+      .wrap {
+        height: auto;
+        grid-template-rows: auto auto;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-rows: auto;
+      }
+
+      .span-4,
+      .span-5,
+      .span-7,
+      .span-8 {
+        grid-column: span 12;
+      }
+
+      #actions,
+      .transport-split {
+        grid-template-columns: 1fr;
+      }
+
+      .transport-layout {
+        grid-template-rows: auto;
+      }
+
+      .body {
+        overflow: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="wrap">
+      <section class="hero">
+        <div class="card hero-card">
+          <h1>Smart Display Port Dashboard</h1>
+          <div class="muted">Mode operateur pour figer la baseline, preparer Lineage 16 en parallele, flasher le slot b et garder le recovery EDL derriere un armement explicite.</div>
+          <div class="chips" id="hero-strip"></div>
+        </div>
+        <div class="card hero-card">
+          <div class="mode-head">
+            <div>
+              <div class="muted" id="last-update">Chargement...</div>
+              <div class="summary" id="state-label">Analyse en cours</div>
+            </div>
+            <div class="buttons">
+              <button class="warn" id="arm-recovery" onclick="setRecoveryMode(true)">Armer Recovery</button>
+              <button class="secondary" id="disarm-recovery" onclick="setRecoveryMode(false)">Desarmer</button>
+            </div>
+          </div>
+          <div class="muted" id="state-hint"></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card span-4">
+          <div class="header">Vue Generale</div>
+          <div class="body" id="overview"></div>
+        </div>
+
+        <div class="card span-8">
+          <div class="header">Actions Contextuelles</div>
+          <div class="body" id="actions"></div>
+        </div>
+
+        <div class="card span-5">
+          <div class="header">Transports</div>
+          <div class="body transport-layout">
+            <div class="transport-block">
+              <div class="section-title">USB / Qualcomm</div>
+              <div id="usb-devices"></div>
+            </div>
+            <div class="transport-split">
+              <div class="transport-block">
+                <div class="section-title">ADB</div>
+                <div id="adb-devices"></div>
+              </div>
+              <div class="transport-block">
+                <div class="section-title">Fastboot</div>
+                <div id="fastboot-devices"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span-7">
+          <div class="header">Jobs</div>
+          <div class="body stack" id="jobs"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const stateColors = {
+      fastboot: 'good',
+      adb: 'info',
+      qualcomm_9008: 'warn',
+      android_901d: 'info',
+      qualcomm_900e: 'warn',
+      none: 'bad',
+      unknown: 'warn',
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderTable(rows, headers) {
+      if (!rows.length) {
+        return '<div class="empty">Aucune entree.</div>';
+      }
+      const head = headers.map((item) => `<th>${escapeHtml(item.label)}</th>`).join('');
+      const body = rows.map((row) => {
+        const cells = headers.map((item) => `<td>${escapeHtml(row[item.key] ?? '')}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    async function api(path, method = 'GET') {
+      const response = await fetch(path, { method, headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+    async function runAction(actionId) {
+      try {
+        await api(`/api/actions/${actionId}`, 'POST');
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function stopJob(actionId) {
+      try {
+        await api(`/api/jobs/${actionId}/stop`, 'POST');
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function setRecoveryMode(armed) {
+      try {
+        await api(armed ? '/api/recovery/arm' : '/api/recovery/disarm', 'POST');
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function renderHero(data) {
+      const color = stateColors[data.state.code] || 'warn';
+      document.getElementById('state-label').textContent = data.state.label;
+      document.getElementById('state-hint').textContent = data.recommendation;
+      document.getElementById('last-update').textContent = `Derniere mise a jour: ${data.timestamp}`;
+      document.getElementById('hero-strip').innerHTML = [
+        `<span class="chip"><span class="dot ${data.mode.recovery_armed ? 'warn' : 'good'}"></span>${escapeHtml(data.mode.label)}</span>`,
+        `<span class="chip"><span class="dot info"></span>${escapeHtml(data.phase.label)}</span>`,
+        `<span class="chip"><span class="dot ${color}"></span>${escapeHtml(data.state.label)}</span>`,
+        `<span class="chip"><span class="dot info"></span>wsl ${escapeHtml(data.wsl_config.distro || 'n/a')}</span>`,
+        `<span class="chip"><span class="dot info"></span>adb ${data.adb.devices.length}</span>`,
+        `<span class="chip"><span class="dot info"></span>fastboot ${data.fastboot.devices.length}</span>`,
+        `<span class="chip"><span class="dot ${data.artifacts.ready ? 'good' : 'warn'}"></span>artifacts ${data.artifacts.ready ? 'ready' : 'missing'}</span>`,
+        `<span class="chip"><span class="dot ${data.latest_baseline.path ? 'good' : 'warn'}"></span>baseline ${escapeHtml(data.latest_baseline.name || 'absente')}</span>`
+      ].join('');
+      document.getElementById('arm-recovery').disabled = data.mode.recovery_armed;
+      document.getElementById('disarm-recovery').disabled = !data.mode.recovery_armed;
+      document.getElementById('disarm-recovery').className = data.mode.recovery_armed ? 'bad' : 'secondary';
+    }
+
+    function renderOverview(data) {
+      const tools = Object.entries(data.tools).map(([key, value]) => `
+        <div class="kv">
+          <div class="key">${escapeHtml(key)}</div>
+          <div>${value.available ? 'OK' : 'Absent'}${value.path ? ` <code>${escapeHtml(value.path)}</code>` : ''}</div>
+        </div>
+      `).join('');
+
+      const assets = Object.entries(data.assets).map(([key, value]) => `
+        <div class="kv">
+          <div class="key">${escapeHtml(key)}</div>
+          <div>${value.exists ? 'OK' : 'Manquant'} <code>${escapeHtml(value.path)}</code></div>
+        </div>
+      `).join('');
+
+      const notes = (data.session_notes || []).length
+        ? data.session_notes.map((note) => `<div class="kv"><div class="key">note</div><div>${escapeHtml(note)}</div></div>`).join('')
+        : '<div class="empty">Aucune note de session.</div>';
+
+      const adbContext = Object.entries(data.adb_context || {}).map(([key, value]) => `
+        <div class="kv">
+          <div class="key">${escapeHtml(key)}</div>
+          <div>${escapeHtml(value)}</div>
+        </div>
+      `).join('') || '<div class="empty">ADB non disponible.</div>';
+
+      const artifactRows = Object.entries(data.artifacts.images || {}).map(([key, value]) => `
+        <div class="kv">
+          <div class="key">${escapeHtml(key)}</div>
+          <div>${value.exists ? `OK ${value.size ?? ''} <code>${escapeHtml(value.path)}</code>` : `Manquant <code>${escapeHtml(value.path)}</code>`}</div>
+        </div>
+      `).join('');
+
+      const wslConfig = Object.entries(data.wsl_config || {}).map(([key, value]) => `
+        <div class="kv">
+          <div class="key">${escapeHtml(key)}</div>
+          <div>${value ? `<code>${escapeHtml(value)}</code>` : 'n/a'}</div>
+        </div>
+      `).join('') || '<div class="empty">Configuration WSL indisponible.</div>';
+
+      document.getElementById('overview').innerHTML = `
+        <div class="overview-grid">
+          <div class="overview-block">
+            <div class="section-title">Etat</div>
+            <div class="summary">${escapeHtml(data.state.label)}</div>
+            <div class="muted">${escapeHtml(data.recommendation)}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Mode</div>
+            <div class="summary">${escapeHtml(data.mode.label)}</div>
+            <div class="muted">${escapeHtml(data.phase.description)}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">ADB Context</div>
+            <div class="kv-grid">${adbContext}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Latest Baseline</div>
+            <div class="kv-grid">
+              <div class="kv"><div class="key">snapshot</div><div>${data.latest_baseline.path ? `<code>${escapeHtml(data.latest_baseline.path)}</code>` : 'Aucune baseline capturee.'}</div></div>
+            </div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">WSL 16.0</div>
+            <div class="kv-grid">${wslConfig}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Artifacts 16.0</div>
+            <div class="kv-grid">
+              <div class="kv"><div class="key">root</div><div><code>${escapeHtml(data.artifacts.root)}</code></div></div>
+              <div class="kv"><div class="key">ready</div><div>${data.artifacts.ready ? 'Oui' : 'Non'}</div></div>
+              ${artifactRows}
+            </div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Notes</div>
+            <div class="kv-grid">${notes}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Outils</div>
+            <div class="kv-grid">${tools}</div>
+          </div>
+          <div class="overview-block">
+            <div class="section-title">Assets</div>
+            <div class="kv-grid">${assets}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderActions(actions) {
+      if (!actions.length) {
+        document.getElementById('actions').innerHTML = `
+          <div class="empty">
+            Aucune action locale pertinente dans cet etat.
+            Les actions EDL restent masquees tant que Recovery Mode n'est pas arme.
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('actions').innerHTML = actions.map((action) => `
+        <div class="action ${action.dangerous ? 'danger' : ''}">
+          <div class="action-head">
+            <strong>${escapeHtml(action.label)}</strong>
+            <span class="pill">${action.running ? 'running' : (action.dangerous ? 'recovery' : 'safe')}</span>
+          </div>
+          <p>${escapeHtml(action.description)}</p>
+          <div class="buttons">
+            <button ${action.running ? 'disabled' : ''} onclick="runAction('${escapeHtml(action.id)}')">Lancer</button>
+            <button class="secondary" ${action.running ? '' : 'disabled'} onclick="stopJob('${escapeHtml(action.id)}')">Stop</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderJobs(jobs) {
+      if (!jobs.length) {
+        document.getElementById('jobs').innerHTML = '<div class="empty">Aucun job lance. Les logs persistants apparaitront ici apres le premier run.</div>';
+        return;
+      }
+
+      const visibleJobs = jobs.slice(-3).reverse();
+      const hiddenCount = Math.max(0, jobs.length - visibleJobs.length);
+
+      document.getElementById('jobs').innerHTML = `
+        ${hiddenCount ? `<div class="empty">${hiddenCount} job(s) plus ancien(s) masque(s) pour garder la vue compacte.</div>` : ''}
+        ${visibleJobs.map((job) => `
+          <div class="action">
+            <div class="job-head">
+              <div>
+                <strong>${escapeHtml(job.label)}</strong>
+                <div class="muted">${escapeHtml(job.command)}</div>
+              </div>
+              <span class="pill">${escapeHtml(job.status)}</span>
+            </div>
+            <div class="muted">Demarre: ${escapeHtml(job.started_at)}${job.ended_at ? ` | Fin: ${escapeHtml(job.ended_at)}` : ''}${job.returncode !== null ? ` | Code: ${escapeHtml(job.returncode)}` : ''}</div>
+            <div class="muted">Log: ${job.log_path ? `<code>${escapeHtml(job.log_path)}</code>` : 'n/a'}</div>
+            <div class="mono">${escapeHtml((job.lines || []).join('\n'))}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function renderDevices(data) {
+      document.getElementById('usb-devices').innerHTML = renderTable(data.usb_devices, [
+        { key: 'status', label: 'Status' },
+        { key: 'friendly_name', label: 'FriendlyName' },
+        { key: 'class_name', label: 'Class' },
+        { key: 'instance_id', label: 'InstanceId' }
+      ]);
+
+      document.getElementById('adb-devices').innerHTML = renderTable(data.adb.devices, [
+        { key: 'serial', label: 'Serial' },
+        { key: 'state', label: 'State' },
+        { key: 'details', label: 'Details' }
+      ]);
+
+      document.getElementById('fastboot-devices').innerHTML = renderTable(data.fastboot.devices, [
+        { key: 'serial', label: 'Serial' },
+        { key: 'details', label: 'Details' }
+      ]);
+    }
+
+    async function refresh() {
+      try {
+        const data = await api('/api/status');
+        renderHero(data);
+        renderOverview(data);
+        renderActions(data.actions);
+        renderDevices(data);
+        renderJobs(data.jobs);
+      } catch (error) {
+        document.getElementById('state-label').textContent = 'Erreur dashboard';
+        document.getElementById('state-hint').textContent = error.message;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

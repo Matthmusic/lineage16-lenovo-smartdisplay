@@ -1,0 +1,45 @@
+# Partition dumps (trop gros, propriétaires)
+backup/
+
+# APK binaires tiers
+*.apk
+
+# Environnements locaux
+.venv-edl/
+.venv/
+__pycache__/
+*.pyc
+
+# ADB / Android SDK state local
+.adbhome/
+.android/
+
+# Logs de build
+logs/
+*.log
+
+# Mémoire Claude
+memory/
+
+# VSCode local
+.vscode/
+
+# Claude project files
+.claude/
+
+# WSL (lien local)
+WSL/
+
+# Archives WSL locales
+*.zip
+*.tar
+*.tar.gz
+*.tar.xz
+*.img
+*.dtb
+
+# Outils tiers (à cloner séparément)
+tools/
+
+# Temp
+tmp_*/

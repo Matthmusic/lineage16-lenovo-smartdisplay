@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!-- Lenovo starfire (ThinkSmart View) — base device tree -->
+  <project name="Starfire-development/android_device_lenovo_starfire"
+           path="device/lenovo/starfire"
+           remote="github"
+           revision="lineage-15.1" />
+
+  <!-- Lenovo APQ8053/MSM8953 kernel (contains Himax panel/touch drivers) -->
+  <project name="LineageOS/android_kernel_lenovo_msm8953"
+           path="kernel/lenovo/msm8953"
+           remote="github"
+           revision="lineage-15.1" />
+
+  <!-- Vendor blobs for starfire (proprietary binaries) -->
+  <project name="Starfire-development/proprietary_vendor_lenovo_starfire"
+           path="vendor/lenovo/starfire"
+           remote="github"
+           revision="lineage-15.1" />
+
+  <!-- DeviceSettings package (LineageOS custom settings UI) -->
+  <project name="LineageOS/android_packages_resources_devicesettings"
+           path="packages/resources/devicesettings"
+           remote="github"
+           revision="lineage-15.1" />
+</manifest>

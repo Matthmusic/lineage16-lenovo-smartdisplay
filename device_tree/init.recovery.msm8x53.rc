@@ -1,0 +1,51 @@
+# init.recovery.msm8x53.rc
+# Platform init for Lenovo Smart Display (blueberry) — MSM8953 / Android Things kernel
+# Imported by TWRP ramdisk's init.rc via: import /init.recovery.${ro.hardware}.rc
+
+on init
+    # The stock Android Things kernel has MDSS quirks that trigger kernel oops.
+    # Without this override, panic_on_oops=1 (set by main init.rc) causes
+    # an immediate system reboot on any MDSS warning, giving a black screen.
+    write /proc/sys/kernel/panic_on_oops 0
+
+on boot
+    # Force the recovery USB gadget up so headless boots stay debuggable.
+    setprop sys.usb.config adb
+
+on fs
+    # This kernel uses USB ConfigFS (CONFIG_USB_CONFIGFS=y), NOT the legacy
+    # android_usb gadget interface. Configure ADB over ConfigFS.
+
+    # Mount ConfigFS
+    mount configfs none /sys/kernel/config
+
+    # Create USB gadget
+    mkdir /sys/kernel/config/usb_gadget/g1 0770
+    write /sys/kernel/config/usb_gadget/g1/idVendor 0x18D1
+    write /sys/kernel/config/usb_gadget/g1/idProduct 0xD001
+
+    # Gadget strings
+    mkdir /sys/kernel/config/usb_gadget/g1/strings/0x409 0770
+    write /sys/kernel/config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
+    write /sys/kernel/config/usb_gadget/g1/strings/0x409/manufacturer ${ro.product.manufacturer}
+    write /sys/kernel/config/usb_gadget/g1/strings/0x409/product ${ro.product.model}
+
+    # ADB function via FunctionFS
+    mkdir /sys/kernel/config/usb_gadget/g1/functions/ffs.adb 0770
+
+    # USB config
+    mkdir /sys/kernel/config/usb_gadget/g1/configs/b.1 0770
+    mkdir /sys/kernel/config/usb_gadget/g1/configs/b.1/strings/0x409 0770
+    write /sys/kernel/config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /sys/kernel/config/usb_gadget/g1/functions/ffs.adb /sys/kernel/config/usb_gadget/g1/configs/b.1/ffs.adb
+
+on property:sys.usb.config=adb
+    # Bind gadget to UDC (MSM8953 dwc3 controller)
+    write /sys/kernel/config/usb_gadget/g1/UDC 7000000.dwc3
+    setprop sys.usb.state ${sys.usb.config}
+    start adbd
+
+on property:sys.usb.config=none
+    write /sys/kernel/config/usb_gadget/g1/UDC ""
+    stop adbd
+    setprop sys.usb.state ${sys.usb.config}

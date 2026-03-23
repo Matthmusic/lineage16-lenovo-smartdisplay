@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!-- Reference-only starfire tree for Android 9+/Treble migration patterns. -->
+  <project name="Starfire-development/android_device_lenovo_starfire"
+           path="device/lenovo/starfire_ref"
+           remote="github"
+           revision="lineage-19.1" />
+
+  <!-- Android 9-capable kernel baseline for msm8953/apq8053-based Lenovo devices. -->
+  <project name="LineageOS/android_kernel_lenovo_msm8953"
+           path="kernel/lenovo/msm8953"
+           remote="github"
+           revision="lineage-16.0" />
+
+  <!-- Explicit blob fallback while dedicated blueberry vendor extraction is completed. -->
+  <project name="Starfire-development/proprietary_vendor_lenovo_starfire"
+           path="vendor/lenovo/starfire"
+           remote="github"
+           revision="lineage-15.1" />
+
+  <project name="LineageOS/android_packages_resources_devicesettings"
+           path="packages/resources/devicesettings"
+           remote="github"
+           revision="lineage-16.0" />
+</manifest>

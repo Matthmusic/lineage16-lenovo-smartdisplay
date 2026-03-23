@@ -1,0 +1,10 @@
+# Lenovo Smart Display 10 (blueberry) - TWRP 8.1 recovery fstab
+# MSM8953 A/B device (BOARD_USES_RECOVERY_AS_BOOT)
+# No separate recovery partition, no cache partition
+
+# mount point  fstype  device                                          flags
+/system         ext4    /dev/block/bootdevice/by-name/system            flags=slotselect;display="System"
+/vendor         ext4    /dev/block/bootdevice/by-name/vendor            flags=slotselect;display="Vendor"
+/data           ext4    /dev/block/bootdevice/by-name/userdata          flags=display="Data"
+/persist        ext4    /dev/block/bootdevice/by-name/persist           flags=display="Persist"
+/boot           emmc    /dev/block/bootdevice/by-name/boot              flags=slotselect;display="Boot"
