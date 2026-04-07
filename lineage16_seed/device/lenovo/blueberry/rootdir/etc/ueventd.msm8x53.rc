@@ -1,0 +1,17 @@
+/dev/block/platform/soc/7824900.sdhci   0660    root    system
+
+/sys/devices/virtual/input/input   enable      0660    root    input
+/sys/devices/virtual/input/input   poll_delay  0660    root    input
+
+/dev/smd0                           0660    root    system
+/dev/smd4                           0660    root    radio
+/dev/smd5                           0660    root    radio
+/dev/smd7                           0660    root    radio
+/dev/smd11                          0660    radio   radio
+/dev/smd21                          0660    root    system
+/dev/smd_cxm_qmi                    0640    root    radio
+
+/dev/qseecom                        0660    root    system
+/dev/ion                            0664    root    system
+
+/sys/class/leds/lcd-backlight       brightness  0664    system  system

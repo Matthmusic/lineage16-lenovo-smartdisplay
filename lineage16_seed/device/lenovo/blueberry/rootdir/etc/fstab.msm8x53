@@ -1,0 +1,9 @@
+# fstab.msm8x53 - Lenovo Smart Display 10 (blueberry)
+# MSM8953, A/B, no dedicated recovery partition
+#
+# <src>                                                  <mnt_point> <type> <mnt_flags and options>                          <fs_mgr_flags>
+/dev/block/bootdevice/by-name/system                     /system     ext4   ro,barrier=1                                     wait,slotselect,avb=vbmeta,logical,first_stage_mount
+/dev/block/bootdevice/by-name/vendor                     /vendor     ext4   ro,barrier=1                                     wait,slotselect,avb,logical,first_stage_mount
+/dev/block/bootdevice/by-name/userdata                   /data       ext4   noatime,nosuid,nodev,barrier=1,noauto_da_alloc   wait,fileencryption=aes-256-xts,quota
+/dev/block/bootdevice/by-name/persist                    /persist    ext4   noatime,nosuid,nodev,barrier=1                   wait
+/dev/block/bootdevice/by-name/oem                        /oem        ext4   ro,barrier=1                                     wait
