@@ -1,0 +1,136 @@
+name: Build TWRP for Lenovo Smart Display 10 (blueberry)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
+    timeout-minutes: 360
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout device tree
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        apt-get update
+        apt-get install -y \
+          bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
+          git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev \
+          liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
+          libxml2-utils lzop pngcrush rsync schedtool squashfs-tools \
+          xsltproc zip zlib1g-dev python3 python2 python-is-python2 openjdk-8-jdk
+        # TWRP 8.1 build scripts are Python 2 - set python -> python2
+        # repo uses its own python3 shebang so this doesn't affect it
+        python --version
+        python3 --version
+        update-java-alternatives --set java-1.8.0-openjdk-amd64
+        java -version
+        curl -s https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo
+        chmod a+x /usr/local/bin/repo
+        repo --version
+
+    - name: Configure git
+      run: |
+        git config --global user.email "build@github.com"
+        git config --global user.name "GitHub Actions"
+        git config --global --add safe.directory '*'
+        git config --global color.ui false
+
+    - name: Init TWRP 8.1 manifest
+      run: |
+        mkdir -p twrp_source
+        cd twrp_source
+        repo init \
+          -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git \
+          -b twrp-8.1 --depth=1
+
+    - name: Sync TWRP source
+      run: |
+        cd twrp_source
+        repo sync -c -j$(nproc) --force-sync --no-tags --no-clone-bundle
+
+    - name: Fix Python 2 build scripts
+      run: |
+        NOOP='#!/usr/bin/env python3\nimport sys\nsys.exit(0)\n'
+        # roomservice.py: device tree already present, no need to fetch from Gerrit
+        ROOMSERVICE="twrp_source/vendor/omni/build/tools/roomservice.py"
+        [ -f "$ROOMSERVICE" ] && printf "$NOOP" > "$ROOMSERVICE" && echo "roomservice.py disabled"
+        # check_radio_versions.py: Python 2 print syntax, no radio images needed for recovery
+        CHECKRADIO="twrp_source/build/tools/check_radio_versions.py"
+        [ -f "$CHECKRADIO" ] && printf "$NOOP" > "$CHECKRADIO" && echo "check_radio_versions.py disabled"
+        # Debug: show actual build/tools structure
+        echo "=== build/tools contents ==="
+        ls twrp_source/build/tools/ 2>/dev/null | grep "\.py$" || echo "(no .py files visible - checking with find)"
+        find twrp_source/build/ -name "post_process_props.py" 2>/dev/null || echo "post_process_props.py not found in build/"
+        # Patch post_process_props.py directly (known failing file)
+        PROPS="twrp_source/build/tools/post_process_props.py"
+        if [ -f "$PROPS" ]; then
+          sed -i 's/\.iteritems()/.items()/g' "$PROPS"
+          sed -i 's/\.itervalues()/.values()/g' "$PROPS"
+          sed -i 's/\.iterkeys()/.keys()/g' "$PROPS"
+          echo "post_process_props.py patched OK"
+          grep -n "iteritems\|itervalues\|iterkeys" "$PROPS" && echo "WARNING: still has Python 2 methods!" || true
+        else
+          echo "WARNING: $PROPS not found!"
+        fi
+        # General sweep with xargs -r (--no-run-if-empty) to avoid exit 123
+        find twrp_source/build/tools -name "*.py" -print0 | \
+          xargs -0 -r sed -i \
+            -e 's/\.iteritems()/.items()/g' \
+            -e 's/\.itervalues()/.values()/g' \
+            -e 's/\.iterkeys()/.keys()/g'
+        echo "=== Python 2 fix complete ==="
+
+    - name: Copy device tree into source
+      run: |
+        mkdir -p twrp_source/device/lenovo/blueberry
+        rsync -a \
+          --exclude='.git' \
+          --exclude='.github' \
+          --exclude='twrp_source' \
+          ./ twrp_source/device/lenovo/blueberry/
+        echo "=== Device tree contents ==="
+        ls -la twrp_source/device/lenovo/blueberry/
+
+    - name: Build TWRP recovery
+      run: |
+        cd twrp_source
+        export ALLOW_MISSING_DEPENDENCIES=true
+        source build/envsetup.sh
+        lunch omni_blueberry-eng
+        mka -j$(nproc) bootimage 2>&1 | tee /tmp/build.log
+        BUILD_EXIT=${PIPESTATUS[0]}
+        echo "=== Build exit code: $BUILD_EXIT ==="
+        exit $BUILD_EXIT
+
+    - name: Upload recovery image
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: twrp-blueberry-recovery
+        path: |
+          twrp_source/out/target/product/blueberry/boot.img
+          twrp_source/out/target/product/blueberry/recovery.img
+        if-no-files-found: warn
+        retention-days: 30
+
+    - name: Upload build log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: /tmp/build.log
+        if-no-files-found: warn
+        retention-days: 7
